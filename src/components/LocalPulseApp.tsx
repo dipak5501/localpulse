@@ -5,6 +5,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Filters } from "@/components/Filters";
 import { PostPulseForm } from "@/components/PostPulseForm";
 import { PulseFeed } from "@/components/PulseFeed";
+import type { MapMode } from "@/components/PulseMap";
 import { FALLBACK_LOCATION_NAME, useGeolocation } from "@/hooks/useGeolocation";
 import { CATEGORIES } from "@/lib/categories";
 import { generateDemoPulses } from "@/lib/demo-data";
@@ -33,6 +34,7 @@ export function LocalPulseApp() {
   const [myPulses, setMyPulses] = useState<Pulse[]>([]);
   const [upvoted, setUpvoted] = useState<ReadonlySet<string>>(() => new Set());
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [mapMode, setMapMode] = useState<MapMode>("pulses");
 
   useEffect(() => {
     const id = setInterval(() => setNow(Date.now()), 60_000);
@@ -125,8 +127,29 @@ export function LocalPulseApp() {
       </aside>
 
       <main className="relative h-[45dvh] flex-1 md:h-full">
+        <div
+          role="radiogroup"
+          aria-label="Map view"
+          className="absolute right-3 top-3 z-[1000] flex rounded-lg border border-zinc-700 bg-zinc-900/90 p-0.5 text-xs font-medium shadow-lg backdrop-blur"
+        >
+          {(["pulses", "heat"] as const).map((mode) => (
+            <button
+              key={mode}
+              type="button"
+              role="radio"
+              aria-checked={mapMode === mode}
+              onClick={() => setMapMode(mode)}
+              className={`rounded-md px-3 py-1.5 transition ${
+                mapMode === mode ? "bg-sky-500 text-zinc-950" : "text-zinc-400 hover:text-zinc-100"
+              }`}
+            >
+              {mode === "pulses" ? "Pulses" : "Heatmap"}
+            </button>
+          ))}
+        </div>
         {position ? (
           <PulseMap
+            mode={mapMode}
             center={position}
             viewCenter={viewCenter}
             radiusKm={radiusKm}

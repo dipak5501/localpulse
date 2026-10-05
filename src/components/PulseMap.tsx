@@ -2,13 +2,18 @@
 
 import "leaflet/dist/leaflet.css";
 import L from "leaflet";
-import { useEffect } from "react";
+import { useEffect, useMemo } from "react";
 import { Circle, CircleMarker, MapContainer, Popup, TileLayer, useMap } from "react-leaflet";
+import { HeatLayer } from "@/components/HeatLayer";
 import { CATEGORY_META } from "@/lib/categories";
 import { formatAge, formatDistance } from "@/lib/format";
+import { toHeatPoints } from "@/lib/heatmap";
 import type { LatLng, RankedPulse } from "@/lib/types";
 
+export type MapMode = "pulses" | "heat";
+
 interface PulseMapProps {
+  mode: MapMode;
   center: LatLng;
   /** A coarsened `center` that only changes on meaningful movement, so GPS jitter doesn't re-fit the map. */
   viewCenter: LatLng;
@@ -38,8 +43,18 @@ function FlyToPulse({ pulse }: { pulse: RankedPulse | undefined }) {
   return null;
 }
 
-export default function PulseMap({ center, viewCenter, radiusKm, pulses, selectedId, now, onSelect }: PulseMapProps) {
+export default function PulseMap({
+  mode,
+  center,
+  viewCenter,
+  radiusKm,
+  pulses,
+  selectedId,
+  now,
+  onSelect,
+}: PulseMapProps) {
   const maxScore = pulses[0]?.score ?? 1;
+  const heatPoints = useMemo(() => toHeatPoints(pulses), [pulses]);
 
   return (
     <MapContainer
@@ -68,7 +83,9 @@ export default function PulseMap({ center, viewCenter, radiusKm, pulses, selecte
         interactive={false}
       />
 
-      {[...pulses].reverse().map((pulse) => {
+      {mode === "heat" && <HeatLayer points={heatPoints} />}
+
+      {mode === "pulses" && [...pulses].reverse().map((pulse) => {
         const { color, label } = CATEGORY_META[pulse.category];
         const selected = pulse.id === selectedId;
         return (
