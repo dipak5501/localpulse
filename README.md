@@ -55,6 +55,7 @@ npm install
 npm run dev        # http://localhost:3000
 npm test           # unit tests
 npm run lint
+npm run typecheck
 npm run build
 ```
 
