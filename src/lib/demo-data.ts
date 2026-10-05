@@ -78,7 +78,7 @@ export function generateDemoPulses(origin: LatLng, now: number, count = 45): Pul
     const ageHours = rand() ** 2 * 24;
 
     return {
-      id: `demo-${i}`,
+      id: `demo-${origin.lat.toFixed(3)},${origin.lng.toFixed(3)}-${i}`,
       text: TEMPLATES[category][nextTemplate[category]++ % TEMPLATES[category].length],
       category,
       lat: point.lat,

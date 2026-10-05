@@ -7,11 +7,16 @@ import { PostPulseForm } from "@/components/PostPulseForm";
 import { PulseFeed } from "@/components/PulseFeed";
 import type { MapMode } from "@/components/PulseMap";
 import { FALLBACK_LOCATION_NAME, useGeolocation } from "@/hooks/useGeolocation";
+import { useLocalStorage } from "@/hooks/useLocalStorage";
 import { CATEGORIES } from "@/lib/categories";
 import { generateDemoPulses } from "@/lib/demo-data";
 import { snapToGrid } from "@/lib/geo";
+import { MAX_STORED_PULSES, STORAGE_KEYS, parseIds, parsePulses } from "@/lib/storage";
 import { rankPulses } from "@/lib/trending";
 import type { Category, Pulse } from "@/lib/types";
+
+const NO_PULSES: Pulse[] = [];
+const NO_IDS: string[] = [];
 
 const PulseMap = dynamic(() => import("@/components/PulseMap"), {
   ssr: false,
@@ -31,8 +36,9 @@ export function LocalPulseApp() {
   const [now, setNow] = useState(() => Date.now());
   const [radiusKm, setRadiusKm] = useState(3);
   const [activeCategories, setActiveCategories] = useState<ReadonlySet<Category>>(() => new Set(CATEGORIES));
-  const [myPulses, setMyPulses] = useState<Pulse[]>([]);
-  const [upvoted, setUpvoted] = useState<ReadonlySet<string>>(() => new Set());
+  const [myPulses, setMyPulses] = useLocalStorage(STORAGE_KEYS.myPulses, NO_PULSES, parsePulses);
+  const [upvotedIds, setUpvotedIds] = useLocalStorage(STORAGE_KEYS.upvoted, NO_IDS, parseIds);
+  const upvoted = useMemo(() => new Set(upvotedIds), [upvotedIds]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [mapMode, setMapMode] = useState<MapMode>("pulses");
 
@@ -79,7 +85,7 @@ export function LocalPulseApp() {
       author: "you",
     };
     setNow(pulse.createdAt);
-    setMyPulses((prev) => [pulse, ...prev]);
+    setMyPulses((prev) => [pulse, ...prev].slice(0, MAX_STORED_PULSES));
     setActiveCategories((prev) => (prev.has(category) ? prev : toggle(prev, category)));
     setSelectedId(pulse.id);
   };
@@ -120,7 +126,9 @@ export function LocalPulseApp() {
               selectedId={selectedId}
               upvoted={upvoted}
               onSelect={setSelectedId}
-              onToggleUpvote={(id) => setUpvoted((prev) => toggle(prev, id))}
+              onToggleUpvote={(id) =>
+                setUpvotedIds((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]))
+              }
             />
           </div>
         </div>
