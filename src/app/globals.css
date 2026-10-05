@@ -1,0 +1,41 @@
+@import "tailwindcss";
+
+@theme inline {
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
+html {
+  color-scheme: dark;
+}
+
+body {
+  background: #09090b;
+  color: #f4f4f5;
+  font-family: var(--font-geist-sans), system-ui, sans-serif;
+}
+
+.leaflet-container {
+  background: #09090b;
+  font-family: inherit;
+}
+
+.leaflet-popup-content-wrapper,
+.leaflet-popup-tip {
+  background: #18181b;
+  color: #f4f4f5;
+  border: 1px solid #3f3f46;
+}
+
+.leaflet-popup-content {
+  margin: 10px 14px;
+}
+
+.leaflet-control-attribution {
+  background: rgb(9 9 11 / 0.7) !important;
+  color: #71717a !important;
+}
+
+.leaflet-control-attribution a {
+  color: #a1a1aa !important;
+}
