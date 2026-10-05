@@ -4,7 +4,8 @@ import { useEffect, useState, useSyncExternalStore } from "react";
 import type { LatLng } from "@/lib/types";
 
 /** Used when the browser can't or won't share a location, so the app is still explorable. */
-export const FALLBACK_LOCATION: LatLng = { lat: 37.7749, lng: -122.4194 };
+export const FALLBACK_LOCATION: LatLng = { lat: 33.7701, lng: -118.1937 };
+export const FALLBACK_LOCATION_NAME = "Long Beach, CA";
 
 export type GeoState =
   | { status: "locating" }

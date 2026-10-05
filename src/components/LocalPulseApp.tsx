@@ -5,7 +5,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Filters } from "@/components/Filters";
 import { PostPulseForm } from "@/components/PostPulseForm";
 import { PulseFeed } from "@/components/PulseFeed";
-import { useGeolocation } from "@/hooks/useGeolocation";
+import { FALLBACK_LOCATION_NAME, useGeolocation } from "@/hooks/useGeolocation";
 import { CATEGORIES } from "@/lib/categories";
 import { generateDemoPulses } from "@/lib/demo-data";
 import { snapToGrid } from "@/lib/geo";
@@ -96,7 +96,7 @@ export function LocalPulseApp() {
           <p className="text-xs text-zinc-500">
             {geo.status === "locating" && "Finding your location…"}
             {geo.status === "ready" && `Live location · accurate to ~${Math.round(geo.accuracyM)} m`}
-            {geo.status === "fallback" && `${geo.reason} Showing San Francisco instead.`}
+            {geo.status === "fallback" && `${geo.reason} Showing ${FALLBACK_LOCATION_NAME} instead.`}
           </p>
         </header>
 
