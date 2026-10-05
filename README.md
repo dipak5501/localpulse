@@ -1,5 +1,7 @@
 # LocalPulse
 
+[![CI](https://github.com/dipak5501/localpulse/actions/workflows/ci.yml/badge.svg)](https://github.com/dipak5501/localpulse/actions/workflows/ci.yml)
+
 **A live map of what's trending around you.** LocalPulse finds your location and shows nearby events, food spots, music, sports and alerts, ranked by a location-aware trending algorithm.
 
 ![LocalPulse screenshot](docs/screenshot.png)
