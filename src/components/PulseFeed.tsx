@@ -9,11 +9,22 @@ interface PulseFeedProps {
   now: number;
   selectedId: string | null;
   upvoted: ReadonlySet<string>;
+  ownIds: ReadonlySet<string>;
   onSelect: (id: string) => void;
   onToggleUpvote: (id: string) => void;
+  onDelete: (id: string) => void;
 }
 
-export function PulseFeed({ pulses, now, selectedId, upvoted, onSelect, onToggleUpvote }: PulseFeedProps) {
+export function PulseFeed({
+  pulses,
+  now,
+  selectedId,
+  upvoted,
+  ownIds,
+  onSelect,
+  onToggleUpvote,
+  onDelete,
+}: PulseFeedProps) {
   if (pulses.length === 0) {
     return (
       <p className="rounded-xl border border-dashed border-zinc-800 p-6 text-center text-sm text-zinc-500">
@@ -54,6 +65,18 @@ export function PulseFeed({ pulses, now, selectedId, upvoted, onSelect, onToggle
                   </span>
                 </span>
               </button>
+              {ownIds.has(pulse.id) && (
+                <button
+                  type="button"
+                  onClick={() => onDelete(pulse.id)}
+                  aria-label={`Delete "${pulse.text}"`}
+                  className="shrink-0 self-start rounded-md p-1 text-zinc-600 transition hover:bg-red-500/10 hover:text-red-400"
+                >
+                  <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden>
+                    <path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3" />
+                  </svg>
+                </button>
+              )}
               <button
                 type="button"
                 onClick={() => onToggleUpvote(pulse.id)}

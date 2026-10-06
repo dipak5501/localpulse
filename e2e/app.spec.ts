@@ -49,6 +49,19 @@ test.describe("with location access", () => {
     await expect(page.getByRole("listitem").filter({ hasText: text })).toBeVisible();
   });
 
+  test("you can delete your own pulse but not other people's", async ({ page }) => {
+    const text = `Delete me ${Date.now()}`;
+    await page.getByPlaceholder("What's happening near you?").fill(text);
+    await page.getByRole("button", { name: "Pulse it" }).click();
+
+    await expect(page.getByRole("button", { name: /^Delete "/ })).toHaveCount(1);
+    await page.getByRole("button", { name: `Delete "${text}"` }).click();
+    await expect(page.getByRole("listitem").filter({ hasText: text })).toHaveCount(0);
+
+    await page.reload();
+    await expect(page.getByRole("listitem").filter({ hasText: text })).toHaveCount(0);
+  });
+
   test("upvotes toggle and persist", async ({ page }) => {
     const upvote = page.getByRole("button", { name: /^Upvote "/ }).first();
     const label = await upvote.getAttribute("aria-label");

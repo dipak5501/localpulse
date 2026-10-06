@@ -39,6 +39,7 @@ export function LocalPulseApp() {
   const [myPulses, setMyPulses] = useLocalStorage(STORAGE_KEYS.myPulses, NO_PULSES, parsePulses);
   const [upvotedIds, setUpvotedIds] = useLocalStorage(STORAGE_KEYS.upvoted, NO_IDS, parseIds);
   const upvoted = useMemo(() => new Set(upvotedIds), [upvotedIds]);
+  const ownIds = useMemo(() => new Set(myPulses.map((p) => p.id)), [myPulses]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [mapMode, setMapMode] = useState<MapMode>("pulses");
 
@@ -125,7 +126,13 @@ export function LocalPulseApp() {
               now={now}
               selectedId={selectedId}
               upvoted={upvoted}
+              ownIds={ownIds}
               onSelect={setSelectedId}
+              onDelete={(id) => {
+                setMyPulses((prev) => prev.filter((p) => p.id !== id));
+                setUpvotedIds((prev) => prev.filter((x) => x !== id));
+                setSelectedId((prev) => (prev === id ? null : prev));
+              }}
               onToggleUpvote={(id) =>
                 setUpvotedIds((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]))
               }
