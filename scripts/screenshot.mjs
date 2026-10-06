@@ -21,11 +21,11 @@ await page.waitForFunction(() => {
   return tiles.length > 0 && document.querySelectorAll(".leaflet-tile-loaded").length === tiles.length;
 });
 await page.waitForTimeout(800);
-await page.screenshot({ path: "docs/screenshot.png" });
+await page.screenshot({ path: "docs/screenshot.jpg", quality: 82 });
 
 await page.getByRole("radio", { name: "Heatmap" }).click();
 await page.waitForTimeout(500);
-await page.screenshot({ path: "docs/heatmap.png" });
+await page.screenshot({ path: "docs/heatmap.jpg", quality: 82 });
 
 await browser.close();
-console.log("Saved docs/screenshot.png and docs/heatmap.png");
+console.log("Saved docs/screenshot.jpg and docs/heatmap.jpg");
