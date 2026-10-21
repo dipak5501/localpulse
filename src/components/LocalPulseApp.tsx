@@ -6,8 +6,10 @@ import { Filters } from "@/components/Filters";
 import { PostPulseForm } from "@/components/PostPulseForm";
 import { PulseFeed } from "@/components/PulseFeed";
 import type { MapMode } from "@/components/PulseMap";
+import { useDisplayName } from "@/hooks/useDisplayName";
 import { FALLBACK_LOCATION_NAME, useGeolocation } from "@/hooks/useGeolocation";
 import { useLocalStorage } from "@/hooks/useLocalStorage";
+import { useRemotePulses } from "@/hooks/useRemotePulses";
 import { CATEGORIES } from "@/lib/categories";
 import { generateDemoPulses } from "@/lib/demo-data";
 import { snapToGrid } from "@/lib/geo";
@@ -29,19 +31,41 @@ function MapPlaceholder({ label }: { label: string }) {
   );
 }
 
+function statusLine(
+  geo: ReturnType<typeof useGeolocation>,
+  remote: ReturnType<typeof useRemotePulses>,
+): string {
+  if (geo.status === "locating") return "Finding your location…";
+  const loc =
+    geo.status === "ready"
+      ? `Live location · accurate to ~${Math.round(geo.accuracyM)} m`
+      : `${geo.reason} Showing ${FALLBACK_LOCATION_NAME} instead.`;
+  if (!remote.enabled) return loc;
+  if (remote.status === "connecting") return `${loc} · connecting…`;
+  if (remote.status === "live") return `${loc} · live`;
+  if (remote.status === "error") return `${loc} · offline (sign-in failed)`;
+  return loc;
+}
+
 export function LocalPulseApp() {
   const geo = useGeolocation();
   const position = geo.status === "locating" ? null : geo.position;
+  const displayName = useDisplayName();
 
   const [now, setNow] = useState(() => Date.now());
   const [radiusKm, setRadiusKm] = useState(3);
   const [activeCategories, setActiveCategories] = useState<ReadonlySet<Category>>(() => new Set(CATEGORIES));
   const [myPulses, setMyPulses] = useLocalStorage(STORAGE_KEYS.myPulses, NO_PULSES, parsePulses);
   const [upvotedIds, setUpvotedIds] = useLocalStorage(STORAGE_KEYS.upvoted, NO_IDS, parseIds);
-  const upvoted = useMemo(() => new Set(upvotedIds), [upvotedIds]);
-  const ownIds = useMemo(() => new Set(myPulses.map((p) => p.id)), [myPulses]);
+  const localUpvoted = useMemo(() => new Set(upvotedIds), [upvotedIds]);
+  const localOwnIds = useMemo(() => new Set(myPulses.map((p) => p.id)), [myPulses]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [mapMode, setMapMode] = useState<MapMode>("pulses");
+
+  const remote = useRemotePulses(position, radiusKm);
+  const live = remote.enabled && remote.status === "live";
+  // When Supabase env is present, never seed demo data (even while connecting).
+  const offlineDemo = !remote.enabled;
 
   useEffect(() => {
     const id = setInterval(() => setNow(Date.now()), 60_000);
@@ -52,15 +76,27 @@ export function LocalPulseApp() {
   const seedLng = position ? snapToGrid(position).lng : null;
   const [sessionStart] = useState(now);
   const demoPulses = useMemo(
-    () => (seedLat === null || seedLng === null ? [] : generateDemoPulses({ lat: seedLat, lng: seedLng }, sessionStart)),
-    [seedLat, seedLng, sessionStart],
+    () =>
+      !offlineDemo || seedLat === null || seedLng === null
+        ? []
+        : generateDemoPulses({ lat: seedLat, lng: seedLng }, sessionStart),
+    [offlineDemo, seedLat, seedLng, sessionStart],
   );
+
+  const upvoted = live ? remote.upvoted : localUpvoted;
+  const ownIds = live ? remote.ownIds : localOwnIds;
 
   const ranked = useMemo(() => {
     if (!position) return [];
-    const all = [...myPulses, ...demoPulses].map((p) => (upvoted.has(p.id) ? { ...p, upvotes: p.upvotes + 1 } : p));
+    if (live) {
+      // Server upvote counts already include this user's vote.
+      return rankPulses(remote.pulses, position, { radiusKm, now, categories: activeCategories });
+    }
+    const all = [...myPulses, ...demoPulses].map((p) =>
+      localUpvoted.has(p.id) ? { ...p, upvotes: p.upvotes + 1 } : p,
+    );
     return rankPulses(all, position, { radiusKm, now, categories: activeCategories });
-  }, [position, myPulses, demoPulses, upvoted, radiusKm, now, activeCategories]);
+  }, [position, live, remote.pulses, myPulses, demoPulses, localUpvoted, radiusKm, now, activeCategories]);
 
   const viewLat = position ? snapToGrid(position, 3).lat : 0;
   const viewLng = position ? snapToGrid(position, 3).lng : 0;
@@ -75,6 +111,18 @@ export function LocalPulseApp() {
 
   const handlePost = (text: string, category: Category) => {
     if (!position) return;
+    setActiveCategories((prev) => (prev.has(category) ? prev : toggle(prev, category)));
+
+    if (live) {
+      void remote.post(text, category, position, displayName).then((created) => {
+        if (created) {
+          setNow(created.createdAt);
+          setSelectedId(created.id);
+        }
+      });
+      return;
+    }
+
     const pulse: Pulse = {
       id: crypto.randomUUID(),
       text,
@@ -87,7 +135,6 @@ export function LocalPulseApp() {
     };
     setNow(pulse.createdAt);
     setMyPulses((prev) => [pulse, ...prev].slice(0, MAX_STORED_PULSES));
-    setActiveCategories((prev) => (prev.has(category) ? prev : toggle(prev, category)));
     setSelectedId(pulse.id);
   };
 
@@ -102,11 +149,7 @@ export function LocalPulseApp() {
             </span>
             LocalPulse
           </h1>
-          <p className="text-xs text-zinc-500">
-            {geo.status === "locating" && "Finding your location…"}
-            {geo.status === "ready" && `Live location · accurate to ~${Math.round(geo.accuracyM)} m`}
-            {geo.status === "fallback" && `${geo.reason} Showing ${FALLBACK_LOCATION_NAME} instead.`}
-          </p>
+          <p className="text-xs text-zinc-500">{statusLine(geo, remote)}</p>
         </header>
 
         <div className="flex-1 space-y-5 overflow-y-auto px-5 py-4">
@@ -129,13 +172,21 @@ export function LocalPulseApp() {
               ownIds={ownIds}
               onSelect={setSelectedId}
               onDelete={(id) => {
-                setMyPulses((prev) => prev.filter((p) => p.id !== id));
-                setUpvotedIds((prev) => prev.filter((x) => x !== id));
+                if (live) {
+                  void remote.remove(id);
+                } else {
+                  setMyPulses((prev) => prev.filter((p) => p.id !== id));
+                  setUpvotedIds((prev) => prev.filter((x) => x !== id));
+                }
                 setSelectedId((prev) => (prev === id ? null : prev));
               }}
-              onToggleUpvote={(id) =>
-                setUpvotedIds((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]))
-              }
+              onToggleUpvote={(id) => {
+                if (live) void remote.toggleUpvote(id);
+                else
+                  setUpvotedIds((prev) =>
+                    prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id],
+                  );
+              }}
             />
           </div>
         </div>

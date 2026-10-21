@@ -179,3 +179,28 @@ describe("row-level security on pulses", () => {
     ).rejects.toThrow(/check constraint/);
   });
 });
+
+describe("create_pulse RPC", () => {
+  it("inserts a pulse at lat/lng for the signed-in user", async () => {
+    await asUser(BOB);
+    const { rows } = await db.query<{ id: string; author_name: string; lat: number; lng: number }>(
+      `select * from public.create_pulse('Harbor walk is packed', 'event', 33.7701, -118.1937, 'bob')`,
+    );
+    expect(rows).toHaveLength(1);
+    expect(rows[0].author_name).toBe("bob");
+    expect(rows[0].lat).toBeCloseTo(33.7701, 5);
+    expect(rows[0].lng).toBeCloseTo(-118.1937, 5);
+
+    const nearby = await db.query<{ text: string }>(
+      `select text from public.nearby_pulses(33.7701, -118.1937, 1)`,
+    );
+    expect(nearby.rows.map((r) => r.text)).toContain("Harbor walk is packed");
+  });
+
+  it("rejects unauthenticated callers", async () => {
+    await asSuperuser();
+    await expect(
+      db.query(`select * from public.create_pulse('nope', 'food', 33.77, -118.19, 'x')`),
+    ).rejects.toThrow(/not authenticated/);
+  });
+});

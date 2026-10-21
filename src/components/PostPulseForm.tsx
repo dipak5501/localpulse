@@ -7,7 +7,7 @@ import type { Category } from "@/lib/types";
 export const MAX_PULSE_LENGTH = 280;
 
 interface PostPulseFormProps {
-  onPost: (text: string, category: Category) => void;
+  onPost: (text: string, category: Category) => void | Promise<void>;
 }
 
 export function PostPulseForm({ onPost }: PostPulseFormProps) {
