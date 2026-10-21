@@ -21,9 +21,16 @@ const UNSUPPORTED: GeoState = {
 
 const noopSubscribe = () => () => {};
 
+/** Cache so useSyncExternalStore getSnapshot stays referentially stable. */
+let sharedCache: { search: string; point: LatLng | null } | null = null;
+
 function readSharedLocation(): LatLng | null {
   if (typeof window === "undefined") return null;
-  return parseLocationQuery(window.location.search);
+  const search = window.location.search;
+  if (sharedCache && sharedCache.search === search) return sharedCache.point;
+  const point = parseLocationQuery(search);
+  sharedCache = { search, point };
+  return point;
 }
 
 export function useGeolocation(): GeoState {
@@ -32,8 +39,14 @@ export function useGeolocation(): GeoState {
     () => "geolocation" in navigator,
     () => true,
   );
-  const shared = useSyncExternalStore(noopSubscribe, readSharedLocation, () => null);
+  // null on server / first paint; populated after mount so hydration stays stable
+  // and we never return a fresh object identity from getSnapshot on every read.
+  const [shared, setShared] = useState<LatLng | null>(null);
   const [state, setState] = useState<GeoState>({ status: "locating" });
+
+  useEffect(() => {
+    setShared(readSharedLocation());
+  }, []);
 
   useEffect(() => {
     if (shared) return;
