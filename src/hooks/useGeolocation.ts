@@ -39,14 +39,15 @@ export function useGeolocation(): GeoState {
     () => "geolocation" in navigator,
     () => true,
   );
-  // null on server / first paint; populated after mount so hydration stays stable
-  // and we never return a fresh object identity from getSnapshot on every read.
-  const [shared, setShared] = useState<LatLng | null>(null);
+  // Cached getSnapshot keeps referential stability (avoids infinite re-renders).
+  // getServerSnapshot returns null so SSR/hydration stay matched; client then
+  // reads ?lat=&lng= after hydrate without an effect setState.
+  const shared = useSyncExternalStore(
+    noopSubscribe,
+    readSharedLocation,
+    () => null,
+  );
   const [state, setState] = useState<GeoState>({ status: "locating" });
-
-  useEffect(() => {
-    setShared(readSharedLocation());
-  }, []);
 
   useEffect(() => {
     if (shared) return;
