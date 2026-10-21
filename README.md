@@ -5,7 +5,9 @@
 
 **A live map of what's trending around you.** LocalPulse finds your location and shows nearby events, food spots, music, sports and alerts, ranked by a location-aware trending algorithm and visualised as markers or a heatmap.
 
-**[Live demo →](https://dipak5501.github.io/localpulse/)** (allow location access, or it defaults to Long Beach, CA)
+**[Live demo →](https://dipak5501.github.io/localpulse/)** · **[Long Beach deep link →](https://dipak5501.github.io/localpulse/?lat=33.77010&lng=-118.19370)**
+
+Allow location access for your area, open the Long Beach link to skip the prompt, or fall back to Long Beach automatically when location is denied.
 
 | Pulses | Heatmap |
 | ------ | ------- |

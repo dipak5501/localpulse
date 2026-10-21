@@ -92,4 +92,10 @@ test.describe("without location access", () => {
     await expect(page.getByText(/Showing Long Beach, CA instead/)).toBeVisible({ timeout: 15_000 });
     expect(await feedCount(page)).toBeGreaterThan(0);
   });
+
+  test("honors a shared ?lat=&lng= deep link", async ({ page }) => {
+    await page.goto("/?lat=33.77010&lng=-118.19370");
+    await expect(page.getByText(/Showing a shared map link/)).toBeVisible();
+    expect(await feedCount(page)).toBeGreaterThan(0);
+  });
 });

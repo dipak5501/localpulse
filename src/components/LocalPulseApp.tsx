@@ -39,7 +39,9 @@ function statusLine(
   const loc =
     geo.status === "ready"
       ? `Live location · accurate to ~${Math.round(geo.accuracyM)} m`
-      : `${geo.reason} Showing ${FALLBACK_LOCATION_NAME} instead.`;
+      : geo.status === "shared"
+        ? "Showing a shared map link"
+        : `${geo.reason} Showing ${FALLBACK_LOCATION_NAME} instead.`;
   if (!remote.enabled) return loc;
   if (remote.status === "connecting") return `${loc} · connecting…`;
   if (remote.status === "live") return `${loc} · live`;

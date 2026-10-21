@@ -1,16 +1,17 @@
 "use client";
 
 import { useEffect, useState, useSyncExternalStore } from "react";
+import { FALLBACK_LOCATION, FALLBACK_LOCATION_NAME } from "@/lib/geo-fallback";
+import { parseLocationQuery } from "@/lib/location-query";
 import type { LatLng } from "@/lib/types";
 
-/** Used when the browser can't or won't share a location, so the app is still explorable. */
-export const FALLBACK_LOCATION: LatLng = { lat: 33.7701, lng: -118.1937 };
-export const FALLBACK_LOCATION_NAME = "Long Beach, CA";
+export { FALLBACK_LOCATION, FALLBACK_LOCATION_NAME };
 
 export type GeoState =
   | { status: "locating" }
   | { status: "ready"; position: LatLng; accuracyM: number }
-  | { status: "fallback"; position: LatLng; reason: string };
+  | { status: "fallback"; position: LatLng; reason: string }
+  | { status: "shared"; position: LatLng };
 
 const UNSUPPORTED: GeoState = {
   status: "fallback",
@@ -20,15 +21,22 @@ const UNSUPPORTED: GeoState = {
 
 const noopSubscribe = () => () => {};
 
+function readSharedLocation(): LatLng | null {
+  if (typeof window === "undefined") return null;
+  return parseLocationQuery(window.location.search);
+}
+
 export function useGeolocation(): GeoState {
   const supported = useSyncExternalStore(
     noopSubscribe,
     () => "geolocation" in navigator,
     () => true,
   );
+  const shared = useSyncExternalStore(noopSubscribe, readSharedLocation, () => null);
   const [state, setState] = useState<GeoState>({ status: "locating" });
 
   useEffect(() => {
+    if (shared) return;
     if (!supported) return;
 
     const watchId = navigator.geolocation.watchPosition(
@@ -55,7 +63,9 @@ export function useGeolocation(): GeoState {
     );
 
     return () => navigator.geolocation.clearWatch(watchId);
-  }, [supported]);
+  }, [supported, shared]);
 
-  return supported ? state : UNSUPPORTED;
+  if (shared) return { status: "shared", position: shared };
+  if (!supported) return UNSUPPORTED;
+  return state;
 }
