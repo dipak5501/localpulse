@@ -35,6 +35,12 @@ yarn-error.log*
 
 # env files (can opt-in for committing if needed)
 .env*
+!.env.example
+
+# local CLI scratch (supabase link state, temp HOME for sandboxed CLI)
+.home/
+.xdg-config/
+supabase/.temp/
 
 # vercel
 .vercel
