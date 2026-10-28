@@ -27,7 +27,7 @@ export function PulseFeed({
 }: PulseFeedProps) {
   if (pulses.length === 0) {
     return (
-      <p className="rounded-xl border border-dashed border-zinc-800 p-6 text-center text-sm text-zinc-500">
+      <p className="rounded-xl border border-dashed border-[color:var(--line-strong)] p-6 text-center text-sm text-[color:var(--muted)]">
         Nothing trending here yet. Widen the radius or be the first to post.
       </p>
     );
@@ -43,7 +43,9 @@ export function PulseFeed({
           <li key={pulse.id}>
             <div
               className={`flex gap-3 rounded-xl border p-3 transition ${
-                selected ? "border-sky-500/60 bg-sky-500/10" : "border-zinc-800 bg-zinc-900/40 hover:border-zinc-700"
+                selected
+                  ? "border-[color:var(--accent)]/50 bg-[color:var(--accent-soft)]"
+                  : "border-[color:var(--line)] bg-[color:var(--panel)] hover:border-[color:var(--line-strong)]"
               }`}
             >
               <button
@@ -51,10 +53,10 @@ export function PulseFeed({
                 onClick={() => onSelect(pulse.id)}
                 className="flex min-w-0 flex-1 gap-3 text-left"
               >
-                <span className="w-5 shrink-0 pt-0.5 font-mono text-xs text-zinc-500">{index + 1}</span>
+                <span className="w-5 shrink-0 pt-0.5 font-mono text-xs text-[color:var(--muted)]">{index + 1}</span>
                 <span className="min-w-0 space-y-1">
-                  <span className="block text-sm text-zinc-100">{pulse.text}</span>
-                  <span className="flex flex-wrap items-center gap-x-2 text-xs text-zinc-500">
+                  <span className="block text-sm text-[color:var(--ink)]">{pulse.text}</span>
+                  <span className="flex flex-wrap items-center gap-x-2 text-xs text-[color:var(--muted)]">
                     <span className="flex items-center gap-1">
                       <span className="h-1.5 w-1.5 rounded-full" style={{ backgroundColor: color }} />
                       {label}
@@ -70,7 +72,7 @@ export function PulseFeed({
                   type="button"
                   onClick={() => onDelete(pulse.id)}
                   aria-label={`Delete "${pulse.text}"`}
-                  className="shrink-0 self-start rounded-md p-1 text-zinc-600 transition hover:bg-red-500/10 hover:text-red-400"
+                  className="shrink-0 self-start rounded-md p-1 text-[color:var(--muted)] transition hover:bg-red-50 hover:text-red-700"
                 >
                   <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden>
                     <path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3" />
@@ -83,7 +85,7 @@ export function PulseFeed({
                 aria-pressed={voted}
                 aria-label={`${voted ? "Remove upvote from" : "Upvote"} "${pulse.text}"`}
                 className={`flex shrink-0 flex-col items-center justify-center rounded-lg px-2 text-xs font-semibold transition ${
-                  voted ? "text-sky-400" : "text-zinc-500 hover:text-zinc-200"
+                  voted ? "text-[color:var(--accent-ink)]" : "text-[color:var(--muted)] hover:text-[color:var(--ink)]"
                 }`}
               >
                 <svg viewBox="0 0 24 24" className="h-4 w-4" fill="currentColor" aria-hidden>

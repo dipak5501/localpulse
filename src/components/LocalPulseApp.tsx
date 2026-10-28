@@ -3,12 +3,15 @@
 import dynamic from "next/dynamic";
 import { useEffect, useMemo, useState } from "react";
 import { Filters } from "@/components/Filters";
+import { PlaceBriefPanel } from "@/components/PlaceBriefPanel";
 import { PostPulseForm } from "@/components/PostPulseForm";
 import { PulseFeed } from "@/components/PulseFeed";
 import type { MapMode } from "@/components/PulseMap";
+import { useAccessLayer } from "@/hooks/useAccessLayer";
 import { useDisplayName } from "@/hooks/useDisplayName";
 import { FALLBACK_LOCATION_NAME, useGeolocation } from "@/hooks/useGeolocation";
 import { useLocalStorage } from "@/hooks/useLocalStorage";
+import { usePlaceBrief } from "@/hooks/usePlaceBrief";
 import { useRemotePulses } from "@/hooks/useRemotePulses";
 import { CATEGORIES } from "@/lib/categories";
 import { generateDemoPulses } from "@/lib/demo-data";
@@ -22,12 +25,14 @@ const NO_IDS: string[] = [];
 
 const PulseMap = dynamic(() => import("@/components/PulseMap"), {
   ssr: false,
-  loading: () => <MapPlaceholder label="Loading map…" />,
+  loading: () => <MapPlaceholder label="Loading chart…" />,
 });
 
 function MapPlaceholder({ label }: { label: string }) {
   return (
-    <div className="flex h-full w-full items-center justify-center bg-zinc-950 text-sm text-zinc-500">{label}</div>
+    <div className="flex h-full w-full items-center justify-center bg-[color:var(--chart-bg)] text-sm text-[color:var(--muted)]">
+      {label}
+    </div>
   );
 }
 
@@ -65,8 +70,11 @@ export function LocalPulseApp() {
   const [mapMode, setMapMode] = useState<MapMode>("pulses");
 
   const remote = useRemotePulses(position, radiusKm);
+  const briefState = usePlaceBrief(position);
+  const accessState = useAccessLayer(position, radiusKm);
+  const accessLayer =
+    accessState.status === "ready" || accessState.status === "loading" ? accessState.layer : null;
   const live = remote.enabled && remote.status === "live";
-  // When Supabase env is present, never seed demo data (even while connecting).
   const offlineDemo = !remote.enabled;
 
   useEffect(() => {
@@ -91,7 +99,6 @@ export function LocalPulseApp() {
   const ranked = useMemo(() => {
     if (!position) return [];
     if (live) {
-      // Server upvote counts already include this user's vote.
       return rankPulses(remote.pulses, position, { radiusKm, now, categories: activeCategories });
     }
     const all = [...myPulses, ...demoPulses].map((p) =>
@@ -140,21 +147,42 @@ export function LocalPulseApp() {
     setSelectedId(pulse.id);
   };
 
+  const mapModes: Array<{ id: MapMode; label: string }> = [
+    { id: "pulses", label: "Pulses" },
+    { id: "heat", label: "Heatmap" },
+    { id: "access", label: "Access" },
+  ];
+
   return (
-    <div className="flex h-dvh flex-col-reverse bg-zinc-950 text-zinc-100 md:flex-row">
-      <aside className="flex h-[55dvh] w-full flex-col border-zinc-800 md:h-full md:w-[400px] md:border-r">
-        <header className="space-y-1 border-b border-zinc-800 px-5 py-4">
-          <h1 className="flex items-center gap-2 text-lg font-bold tracking-tight">
-            <span className="relative flex h-2.5 w-2.5">
-              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-sky-400 opacity-75" />
-              <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-sky-400" />
+    <div className="flex h-dvh flex-col-reverse bg-[color:var(--bg)] text-[color:var(--ink)] md:flex-row">
+      <aside className="flex h-[55dvh] w-full flex-col border-[color:var(--line)] md:h-full md:w-[420px] md:border-r">
+        <header className="space-y-2 border-b border-[color:var(--line)] px-5 py-4">
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-[color:var(--accent-ink)]">
+                Harborbrief
+              </p>
+              <h1 className="font-serif text-2xl leading-none tracking-tight text-[color:var(--ink)]">
+                A living brief for the ground under your feet
+              </h1>
+            </div>
+            <span className="relative mt-1 flex h-2.5 w-2.5 shrink-0" aria-hidden>
+              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[color:var(--accent)] opacity-60" />
+              <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-[color:var(--accent)]" />
             </span>
-            LocalPulse
-          </h1>
-          <p className="text-xs text-zinc-500">{statusLine(geo, remote)}</p>
+          </div>
+          <p className="text-xs text-[color:var(--muted)]">
+            LocalPulse · weather, place story, neighborhood access, and community pulses
+          </p>
+          <p className="text-xs text-[color:var(--muted)]">{statusLine(geo, remote)}</p>
         </header>
 
         <div className="flex-1 space-y-5 overflow-y-auto px-5 py-4">
+          <PlaceBriefPanel
+            briefState={briefState}
+            access={accessLayer}
+            accessLoading={accessState.status === "loading"}
+          />
           <Filters
             radiusKm={radiusKm}
             onRadiusChange={setRadiusKm}
@@ -163,7 +191,7 @@ export function LocalPulseApp() {
           />
           <PostPulseForm onPost={handlePost} />
           <div>
-            <h2 className="mb-2 text-xs font-semibold uppercase tracking-wider text-zinc-500">
+            <h2 className="mb-2 text-xs font-semibold uppercase tracking-wider text-[color:var(--muted)]">
               Trending nearby · {ranked.length}
             </h2>
             <PulseFeed
@@ -198,20 +226,22 @@ export function LocalPulseApp() {
         <div
           role="radiogroup"
           aria-label="Map view"
-          className="absolute right-3 top-3 z-[1000] flex rounded-lg border border-zinc-700 bg-zinc-900/90 p-0.5 text-xs font-medium shadow-lg backdrop-blur"
+          className="absolute right-3 top-3 z-[1000] flex rounded-lg border border-[color:var(--line-strong)] bg-[color:var(--panel)]/95 p-0.5 text-xs font-medium shadow-md backdrop-blur"
         >
-          {(["pulses", "heat"] as const).map((mode) => (
+          {mapModes.map(({ id, label }) => (
             <button
-              key={mode}
+              key={id}
               type="button"
               role="radio"
-              aria-checked={mapMode === mode}
-              onClick={() => setMapMode(mode)}
+              aria-checked={mapMode === id}
+              onClick={() => setMapMode(id)}
               className={`rounded-md px-3 py-1.5 transition ${
-                mapMode === mode ? "bg-sky-500 text-zinc-950" : "text-zinc-400 hover:text-zinc-100"
+                mapMode === id
+                  ? "bg-[color:var(--accent)] text-white"
+                  : "text-[color:var(--muted)] hover:text-[color:var(--ink)]"
               }`}
             >
-              {mode === "pulses" ? "Pulses" : "Heatmap"}
+              {label}
             </button>
           ))}
         </div>
@@ -222,6 +252,7 @@ export function LocalPulseApp() {
             viewCenter={viewCenter}
             radiusKm={radiusKm}
             pulses={ranked}
+            accessPoints={accessLayer?.points ?? []}
             selectedId={selectedId}
             now={now}
             onSelect={setSelectedId}

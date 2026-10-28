@@ -17,7 +17,7 @@ export function PostPulseForm({ onPost }: PostPulseFormProps) {
 
   return (
     <form
-      className="space-y-2 rounded-xl border border-zinc-800 bg-zinc-900/60 p-3"
+      className="space-y-2 rounded-xl border border-[color:var(--line)] bg-[color:var(--panel)] p-3"
       onSubmit={(e) => {
         e.preventDefault();
         if (!trimmed) return;
@@ -33,9 +33,9 @@ export function PostPulseForm({ onPost }: PostPulseFormProps) {
         value={text}
         maxLength={MAX_PULSE_LENGTH}
         onChange={(e) => setText(e.target.value)}
-        placeholder="What's happening near you?"
+        placeholder="What's happening on this block?"
         rows={2}
-        className="w-full resize-none bg-transparent text-sm text-zinc-100 placeholder:text-zinc-500 focus:outline-none"
+        className="w-full resize-none bg-transparent text-sm text-[color:var(--ink)] placeholder:text-[color:var(--muted)] focus:outline-none"
       />
       <div className="flex items-center gap-2">
         <label htmlFor="pulse-category" className="sr-only">
@@ -45,7 +45,7 @@ export function PostPulseForm({ onPost }: PostPulseFormProps) {
           id="pulse-category"
           value={category}
           onChange={(e) => setCategory(e.target.value as Category)}
-          className="rounded-md border border-zinc-700 bg-zinc-800 px-2 py-1 text-xs text-zinc-200"
+          className="rounded-md border border-[color:var(--line-strong)] bg-[color:var(--bg)] px-2 py-1 text-xs text-[color:var(--ink)]"
         >
           {CATEGORIES.map((c) => (
             <option key={c} value={c}>
@@ -53,13 +53,13 @@ export function PostPulseForm({ onPost }: PostPulseFormProps) {
             </option>
           ))}
         </select>
-        <span className="ml-auto font-mono text-xs text-zinc-500">
+        <span className="ml-auto font-mono text-xs text-[color:var(--muted)]">
           {text.length}/{MAX_PULSE_LENGTH}
         </span>
         <button
           type="submit"
           disabled={!trimmed}
-          className="rounded-md bg-sky-500 px-3 py-1 text-xs font-semibold text-zinc-950 transition hover:bg-sky-400 disabled:cursor-not-allowed disabled:opacity-40"
+          className="rounded-md bg-[color:var(--accent)] px-3 py-1 text-xs font-semibold text-white transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-40"
         >
           Pulse it
         </button>

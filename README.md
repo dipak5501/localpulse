@@ -1,124 +1,118 @@
-# LocalPulse
+# Harborbrief · LocalPulse
 
 [![CI](https://github.com/dipak5501/localpulse/actions/workflows/ci.yml/badge.svg)](https://github.com/dipak5501/localpulse/actions/workflows/ci.yml)
 [![Deploy](https://github.com/dipak5501/localpulse/actions/workflows/deploy.yml/badge.svg)](https://github.com/dipak5501/localpulse/actions/workflows/deploy.yml)
 
-**A live map of what's trending around you.** LocalPulse finds your location and shows nearby events, food spots, music, sports and alerts, ranked by a location-aware trending algorithm and visualised as markers or a heatmap.
+**A living brief for the ground under your feet.** Harborbrief is not another generic “local trending” map — it layers **live weather**, a **Wikipedia place story**, **neighborhood access** (clinics, pharmacies, groceries, transit, parks), and **community pulses** ranked by a location-aware trending algorithm.
+
+Built by [Dipak Yadav](https://dipak5501.github.io/) (CSULB · Long Beach) — home port defaults to Long Beach when location is denied.
 
 **[Live demo →](https://dipak5501.github.io/localpulse/)** · **[Long Beach deep link →](https://dipak5501.github.io/localpulse/?lat=33.77010&lng=-118.19370)**
-
-Allow location access for your area, open the Long Beach link to skip the prompt, or fall back to Long Beach automatically when location is denied.
 
 | Pulses | Heatmap |
 | ------ | ------- |
 | ![Pulses view](docs/screenshot.jpg) | ![Heatmap view](docs/heatmap.jpg) |
 
+## What makes it uncommon
+
+Most “local pulse” clones stop at pins + a feed. Harborbrief answers a different question:
+
+> **What is this place telling you right now?**
+
+1. **Living place brief** — reverse-geocoded neighborhood name, Open-Meteo conditions, nearest Wikipedia extract.
+2. **Access layer** — health-equity-adjacent neighborhood amenities (care, Rx, groceries, transit, parks) from Google Places when a key is present, otherwise OSM Overpass, otherwise clearly labeled sample points.
+3. **Community pulses** — the original LocalPulse ranking (upvotes × recency × proximity) with markers and a hand-rolled heatmap.
+
+Repo / GitHub Pages path stays `localpulse` so existing links keep working; the product name in the UI is **Harborbrief**.
+
 ## Features
 
-- **Live geolocation** via `watchPosition`, with a graceful fallback when access is denied or unavailable
-- **Radius search** (1 to 15 km) using great-circle (haversine) distance locally, or PostGIS `ST_DWithin` when connected to Supabase
-- **Location-aware trending ranking** that balances upvotes, recency and proximity
-- **Two map views:** scored markers (size = trending score) or a custom canvas **heatmap** of hotspots
-- **Post, upvote and filter by category**; offline mode persists in `localStorage`, live mode uses anonymous Supabase Auth + Realtime
-- **Responsive and accessible:** works on mobile, labelled controls, `aria-pressed` / `radiogroup` semantics
+- **Live geolocation** via `watchPosition`, with Long Beach fallback + `?lat=&lng=` deep links
+- **Place brief panel** assembled from independent public APIs (partial failure tolerant)
+- **Three map modes:** Pulses · Heatmap · Access
+- **Radius search** (1–15 km) with haversine locally, or PostGIS `ST_DWithin` via Supabase
+- **Optional Google Maps Platform** — Geocoding + Places Nearby unlock richer names and reliable POIs
+- **Offline pulse demo** when Supabase env is missing (seeded + `localStorage`)
+- **Responsive and accessible** controls (`aria-pressed`, radiogroup, labelled inputs)
+
+## APIs
+
+| Signal | Default (no keys) | With `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY` |
+| ------ | ----------------- | -------------------------------------- |
+| Place name | [BigDataCloud](https://www.bigdatacloud.com/) reverse-geocode client | Google Geocoding (Maps JS) |
+| Weather | [Open-Meteo](https://open-meteo.com/) | same |
+| Place story | [Wikipedia](https://www.mediawiki.org/wiki/API:Main_page) GeoSearch + REST summary | same |
+| Access POIs | [Overpass](https://overpass-api.de/) (OSM); labeled **sample** points if Overpass is down | Google Places Nearby |
+| Community pulses | Demo seed + `localStorage` | + Supabase when configured |
+
+Demo / sample access points are always labeled in the UI — never presented as live OSM/Google data.
+
+## Enable Google Cloud API key
+
+1. Open [Google Cloud Console](https://console.cloud.google.com/) → create or select a project.
+2. Enable billing (Maps Platform requires it; free monthly credit usually covers light demos).
+3. **APIs & Services → Enable:** Maps JavaScript API, Places API, Geocoding API.
+4. **Credentials → Create credentials → API key.**
+5. Restrict the key:
+   - **Application:** HTTP referrers — `http://localhost:3000/*`, `https://dipak5501.github.io/*`
+   - **API restrictions:** the three APIs above
+6. Copy into `.env.local` as `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY=…` (see [`.env.example`](.env.example)).
+7. For GitHub Pages, add the same value as repository secret `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY` and re-run Deploy.
+
+Never commit real keys. The anon/browser key is safe only when referrer-restricted.
 
 ## How trending works
-
-Each pulse gets a score inspired by Hacker News ranking, weighted by distance:
 
 ```
 score = (upvotes + 1) / (ageHours + 2) ^ 1.5  ×  (1 − 0.5 × min(distance / radius, 1))
 ```
 
-- **Time decay:** older posts sink unless they keep getting votes. The gravity value `1.5` controls how quickly.
-- **Proximity:** a post at the edge of your radius scores half as much as an identical one next to you.
-
-Implementation: [`src/lib/trending.ts`](src/lib/trending.ts), covered by unit tests.
+Implementation: [`src/lib/trending.ts`](src/lib/trending.ts).
 
 ## Architecture
 
 ```mermaid
 flowchart LR
-  GPS[Browser Geolocation API] --> Hook[useGeolocation]
-  Hook --> App[LocalPulseApp]
-  Env{Supabase env?}
-  Env -->|yes| Remote[useRemotePulses + anon auth]
-  Env -->|no| Store[(localStorage + demo seed)]
-  Remote --> SB[(Supabase PostGIS + Realtime)]
-  Store --> App
-  Remote --> App
-  App --> Rank[rankPulses]
-  Rank --> Feed[Trending feed]
-  Rank --> Map[Leaflet map]
+  GPS[Browser Geolocation] --> App[Harborbrief UI]
+  App --> Brief[Place brief]
+  Brief --> Weather[Open-Meteo]
+  Brief --> Geo[BigDataCloud / Google Geocoder]
+  Brief --> Wiki[Wikipedia Geo]
+  App --> Access[Access layer]
+  Access --> Places[Google Places]
+  Access --> OSM[OSM Overpass]
+  Access --> Demo[Labeled sample POIs]
+  App --> Pulses[Community pulses]
+  Pulses --> Rank[rankPulses]
+  Env{Supabase?}
+  Env -->|yes| SB[(PostGIS + Realtime)]
+  Env -->|no| Local[(localStorage + demo seed)]
 ```
-
-- **`src/lib`** holds pure, framework-free logic (geo math, ranking, heatmap colouring, storage validation). It has no React imports, so it's fast to unit test and could run on a server unchanged.
-- **Dual backend:** when `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY` are set, the app signs in anonymously, calls `nearby_pulses` / `create_pulse`, writes votes, and subscribes to Realtime. When they are missing (e.g. the current GitHub Pages build), it falls back to seeded demo data + `localStorage` so the static demo keeps working.
-- **The heatmap is hand-written** rather than a plugin: each point stamps a pre-blurred circle onto a canvas at its weight as opacity, then the alpha channel is recoloured through a 256-entry palette ([`HeatLayer.tsx`](src/components/HeatLayer.tsx), [`heatmap.ts`](src/lib/heatmap.ts)).
 
 ## Database (Supabase + PostGIS)
 
-Schema and RPCs live in [`supabase/migrations`](supabase/migrations):
-
-- `pulses` stores a PostGIS `geography(point)` with a **GiST index**, so radius queries use `ST_DWithin` on the index instead of scanning every row.
-- `nearby_pulses(origin_lat, origin_lng, radius_km)` returns pulses in range with distance.
-- `create_pulse(...)` inserts a geography point safely from the browser (no raw WKT).
-- `pulse_votes` has a composite primary key (**one vote per user**) and a trigger that keeps a denormalised `upvotes` counter in sync.
-- **Row-level security:** anyone can read; signed-in users can only post, vote and delete as themselves, and can't seed fake upvotes.
-- Inserts/updates are broadcast over **Supabase Realtime**.
-
-Migrations are tested against Postgres + PostGIS in-process via [PGlite](https://pglite.dev) ([`supabase/tests`](supabase/tests/migration.test.ts)).
-
-### Connect your Supabase project
-
-1. Create a free project at [supabase.com](https://supabase.com) (GitHub sign-in is fine).
-2. **Enable Anonymous sign-ins:** Authentication → Providers → Anonymous → Enable.
-3. Copy **Project URL** and **anon public** key from Project Settings → API into `.env.local` (see [`.env.example`](.env.example)).
-4. Apply migrations (pick one):
-
-```bash
-# Option A — Supabase CLI (recommended)
-npx supabase login
-npx supabase link --project-ref YOUR_PROJECT_REF
-npx supabase db push
-
-# Option B — SQL editor
-# Paste and run every file in supabase/migrations/ in order.
-```
-
-5. Restart `npm run dev`. The header should show **live** once anonymous auth succeeds.
-
-### Live demo on GitHub Pages
-
-The Pages deploy stays in **offline demo mode** until you add repository secrets:
-
-- `NEXT_PUBLIC_SUPABASE_URL`
-- `NEXT_PUBLIC_SUPABASE_ANON_KEY`
-
-Then re-run the Deploy workflow (or push to `main`). The anon key is safe to expose in a static site; never put the **service role** key in the frontend or in Pages secrets.
+Unchanged dual backend: when `NEXT_PUBLIC_SUPABASE_URL` + `NEXT_PUBLIC_SUPABASE_ANON_KEY` are set, pulses go live with anonymous auth + Realtime. Otherwise the Pages demo stays on seeded data + `localStorage`. See [`supabase/`](supabase/) and the setup steps in prior releases (Anonymous provider, `db push`).
 
 ## Testing
 
-| Layer | Tooling | What's covered |
-| ----- | ------- | -------------- |
-| Unit | Vitest | Geo math, trending, heatmap palette, storage validation, formatting, Supabase config gate |
-| Database | Vitest + PGlite/PostGIS | Radius search, age filter, vote trigger, RLS policies, `create_pulse` RPC |
-| End-to-end | Playwright (desktop + mobile) | Live location, fallback, radius, filters, posting + reload, upvotes, heatmap |
-
-CI runs lint, type-check, unit/database tests, a production build and the Playwright suite on every push. Merges to `main` deploy a static build to GitHub Pages.
+| Layer | Tooling | Coverage |
+| ----- | ------- | -------- |
+| Unit | Vitest | Geo, trending, heatmap, storage, weather labels, access demo seed, Supabase gate |
+| Database | Vitest + PGlite/PostGIS | Radius RPCs, votes, RLS |
+| E2E | Playwright | Location, radius, filters, post/upvote, heatmap, Long Beach fallback |
 
 ## Tech stack
 
-Next.js 16 (App Router) · React 19 · TypeScript · Tailwind CSS 4 · Leaflet / react-leaflet · Supabase (Postgres + PostGIS + Auth + Realtime) · Vitest · Playwright · GitHub Actions
+Next.js 16 · React 19 · TypeScript · Tailwind CSS 4 · Leaflet · Open-Meteo · Wikipedia · Overpass · optional Google Maps JS (Geocoding + Places) · optional Supabase · Vitest · Playwright · GitHub Actions
 
 ## Getting started
 
 ```bash
 npm install
-cp .env.example .env.local   # optional — omit for offline demo mode
+cp .env.example .env.local   # optional keys
 npm run dev                  # http://localhost:3000
-npm test                     # unit + database tests
-npm run test:e2e             # Playwright (starts the dev server if needed)
+npm test
+npm run test:e2e
 npm run lint
 npm run typecheck
 npm run build
@@ -126,9 +120,9 @@ npm run build
 
 ## Roadmap
 
-- [x] Map, geolocation, radius search, location-aware trending ranking
-- [x] Heatmap view, local persistence, end-to-end tests, live demo
-- [x] Supabase schema with PostGIS, RLS and tested migrations
-- [x] Connect the app to Supabase with anonymous sign-in
-- [x] Realtime updates so new pulses appear for everyone instantly
+- [x] Map, geolocation, radius, trending, heatmap, offline demo
+- [x] Supabase + PostGIS + Realtime path
+- [x] Harborbrief place brief (weather · wiki · geocode)
+- [x] Access map mode (Google Places / Overpass / labeled demo)
 - [ ] Photo attachments via Supabase Storage
+- [ ] Optional Google Map tiles when a key is present

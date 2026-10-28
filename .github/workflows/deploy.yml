@@ -28,10 +28,11 @@ jobs:
         env:
           STATIC_EXPORT: "true"
           NEXT_PUBLIC_BASE_PATH: /${{ github.event.repository.name }}
-          # Optional: add these as repo secrets to run the live demo against Supabase.
-          # Without them the Pages build stays in offline demo mode (localStorage + seed data).
+          # Optional: add these as repo secrets to unlock live backends on Pages.
+          # Without them: offline pulse demo + free place APIs (no Google enrichment).
           NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
           NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+          NEXT_PUBLIC_GOOGLE_MAPS_API_KEY: ${{ secrets.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY }}
       - uses: actions/upload-pages-artifact@v4
         with:
           path: out

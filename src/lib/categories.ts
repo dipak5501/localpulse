@@ -9,11 +9,12 @@ export const CATEGORIES: readonly Category[] = [
   "chatter",
 ] as const;
 
+/** Harbor chart palette — teal / amber / sea, not purple-AI defaults. */
 export const CATEGORY_META: Record<Category, { label: string; color: string }> = {
-  event: { label: "Events", color: "#a855f7" },
-  food: { label: "Food", color: "#f97316" },
-  music: { label: "Music", color: "#ec4899" },
-  sports: { label: "Sports", color: "#22c55e" },
-  alert: { label: "Alerts", color: "#ef4444" },
-  chatter: { label: "Chatter", color: "#38bdf8" },
+  event: { label: "Events", color: "#0f766e" },
+  food: { label: "Food", color: "#c2410c" },
+  music: { label: "Music", color: "#b45309" },
+  sports: { label: "Sports", color: "#15803d" },
+  alert: { label: "Alerts", color: "#b91c1c" },
+  chatter: { label: "Chatter", color: "#1d4ed8" },
 };

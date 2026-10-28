@@ -8,9 +8,10 @@ import { HeatLayer } from "@/components/HeatLayer";
 import { CATEGORY_META } from "@/lib/categories";
 import { formatAge, formatDistance } from "@/lib/format";
 import { toHeatPoints } from "@/lib/heatmap";
+import { ACCESS_KIND_META, type AccessPoint } from "@/lib/place";
 import type { LatLng, RankedPulse } from "@/lib/types";
 
-export type MapMode = "pulses" | "heat";
+export type MapMode = "pulses" | "heat" | "access";
 
 interface PulseMapProps {
   mode: MapMode;
@@ -19,6 +20,7 @@ interface PulseMapProps {
   viewCenter: LatLng;
   radiusKm: number;
   pulses: RankedPulse[];
+  accessPoints: AccessPoint[];
   selectedId: string | null;
   now: number;
   onSelect: (id: string) => void;
@@ -49,6 +51,7 @@ export default function PulseMap({
   viewCenter,
   radiusKm,
   pulses,
+  accessPoints,
   selectedId,
   now,
   onSelect,
@@ -65,59 +68,84 @@ export default function PulseMap({
       attributionControl
     >
       <TileLayer
-        attribution="Tiles &copy; Esri &mdash; Esri, HERE, Garmin, &copy; OpenStreetMap contributors"
-        url="https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}"
-        maxZoom={16}
-      />
-      <TileLayer
-        url="https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Reference/MapServer/tile/{z}/{y}/{x}"
-        maxZoom={16}
+        attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> · CARTO'
+        url="https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png"
+        subdomains="abcd"
+        maxZoom={20}
       />
       <FitToRadius center={viewCenter} radiusKm={radiusKm} />
-      <FlyToPulse pulse={pulses.find((p) => p.id === selectedId)} />
+      {mode !== "access" && <FlyToPulse pulse={pulses.find((p) => p.id === selectedId)} />}
 
       <Circle
         center={[center.lat, center.lng]}
         radius={radiusKm * 1000}
-        pathOptions={{ color: "#38bdf8", weight: 1, dashArray: "6 6", fillOpacity: 0.04 }}
+        pathOptions={{ color: "#0f766e", weight: 1.5, dashArray: "5 7", fillColor: "#0f766e", fillOpacity: 0.04 }}
         interactive={false}
       />
 
       {mode === "heat" && <HeatLayer points={heatPoints} />}
 
-      {mode === "pulses" && [...pulses].reverse().map((pulse) => {
-        const { color, label } = CATEGORY_META[pulse.category];
-        const selected = pulse.id === selectedId;
-        return (
-          <CircleMarker
-            key={pulse.id}
-            center={[pulse.lat, pulse.lng]}
-            radius={6 + 12 * (pulse.score / maxScore)}
-            pathOptions={{
-              color: selected ? "#ffffff" : color,
-              weight: selected ? 3 : 1,
-              fillColor: color,
-              fillOpacity: selected ? 0.9 : 0.55,
-            }}
-            eventHandlers={{ click: () => onSelect(pulse.id) }}
-          >
-            <Popup>
-              <div className="space-y-1">
-                <p className="font-semibold">{pulse.text}</p>
-                <p className="text-xs opacity-70">
-                  {label} · {formatDistance(pulse.distanceKm)} · {formatAge(now - pulse.createdAt)} ·{" "}
-                  {pulse.upvotes} upvotes
-                </p>
-              </div>
-            </Popup>
-          </CircleMarker>
-        );
-      })}
+      {mode === "pulses" &&
+        [...pulses].reverse().map((pulse) => {
+          const { color, label } = CATEGORY_META[pulse.category];
+          const selected = pulse.id === selectedId;
+          return (
+            <CircleMarker
+              key={pulse.id}
+              center={[pulse.lat, pulse.lng]}
+              radius={6 + 12 * (pulse.score / maxScore)}
+              pathOptions={{
+                color: selected ? "#12202a" : color,
+                weight: selected ? 3 : 1,
+                fillColor: color,
+                fillOpacity: selected ? 0.95 : 0.65,
+              }}
+              eventHandlers={{ click: () => onSelect(pulse.id) }}
+            >
+              <Popup>
+                <div className="space-y-1">
+                  <p className="font-semibold">{pulse.text}</p>
+                  <p className="text-xs opacity-70">
+                    {label} · {formatDistance(pulse.distanceKm)} · {formatAge(now - pulse.createdAt)} ·{" "}
+                    {pulse.upvotes} upvotes
+                  </p>
+                </div>
+              </Popup>
+            </CircleMarker>
+          );
+        })}
+
+      {mode === "access" &&
+        accessPoints.map((point) => {
+          const meta = ACCESS_KIND_META[point.kind];
+          return (
+            <CircleMarker
+              key={point.id}
+              center={[point.lat, point.lng]}
+              radius={8}
+              pathOptions={{
+                color: "#12202a",
+                weight: 1,
+                fillColor: meta.color,
+                fillOpacity: 0.85,
+              }}
+            >
+              <Popup>
+                <div className="space-y-1">
+                  <p className="font-semibold">{point.name}</p>
+                  <p className="text-xs opacity-70">
+                    {meta.label} · {formatDistance(point.distanceKm)}
+                  </p>
+                </div>
+              </Popup>
+            </CircleMarker>
+          );
+        })}
 
       <CircleMarker
         center={[center.lat, center.lng]}
         radius={8}
-        pathOptions={{ color: "#ffffff", weight: 3, fillColor: "#3b82f6", fillOpacity: 1 }}
+        pathOptions={{ color: "#fffcf7", weight: 3, fillColor: "#0f766e", fillOpacity: 1 }}
         interactive={false}
       />
     </MapContainer>

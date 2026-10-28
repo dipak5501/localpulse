@@ -15,10 +15,10 @@ export function Filters({ radiusKm, onRadiusChange, activeCategories, onToggleCa
     <section className="space-y-4">
       <div>
         <div className="mb-2 flex items-center justify-between text-sm">
-          <label htmlFor="radius" className="font-medium text-zinc-300">
+          <label htmlFor="radius" className="font-medium text-[color:var(--ink-2)]">
             Search radius
           </label>
-          <span className="font-mono text-sky-400">{radiusKm} km</span>
+          <span className="font-mono text-[color:var(--accent-ink)]">{radiusKm} km</span>
         </div>
         <input
           id="radius"
@@ -28,7 +28,7 @@ export function Filters({ radiusKm, onRadiusChange, activeCategories, onToggleCa
           step={1}
           value={radiusKm}
           onChange={(e) => onRadiusChange(Number(e.target.value))}
-          className="w-full accent-sky-400"
+          className="w-full accent-[color:var(--accent)]"
         />
       </div>
 
@@ -44,8 +44,8 @@ export function Filters({ radiusKm, onRadiusChange, activeCategories, onToggleCa
               onClick={() => onToggleCategory(category)}
               className={`flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-medium transition ${
                 active
-                  ? "border-zinc-600 bg-zinc-800 text-zinc-100"
-                  : "border-zinc-800 bg-transparent text-zinc-500 hover:text-zinc-300"
+                  ? "border-[color:var(--line-strong)] bg-[color:var(--panel)] text-[color:var(--ink)] shadow-sm"
+                  : "border-transparent bg-transparent text-[color:var(--muted)] hover:text-[color:var(--ink-2)]"
               }`}
             >
               <span

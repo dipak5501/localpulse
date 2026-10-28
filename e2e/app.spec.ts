@@ -37,7 +37,7 @@ test.describe("with location access", () => {
 
   test("posting a pulse adds it to the feed and survives a reload", async ({ page }) => {
     const text = `E2E pulse ${Date.now()}`;
-    await page.getByPlaceholder("What's happening near you?").fill(text);
+    await page.getByPlaceholder("What's happening on this block?").fill(text);
     await page.getByLabel("Category", { exact: true }).selectOption("music");
     await page.getByRole("button", { name: "Pulse it" }).click();
 
@@ -51,7 +51,7 @@ test.describe("with location access", () => {
 
   test("you can delete your own pulse but not other people's", async ({ page }) => {
     const text = `Delete me ${Date.now()}`;
-    await page.getByPlaceholder("What's happening near you?").fill(text);
+    await page.getByPlaceholder("What's happening on this block?").fill(text);
     await page.getByRole("button", { name: "Pulse it" }).click();
 
     await expect(page.getByRole("button", { name: /^Delete "/ })).toHaveCount(1);
@@ -81,6 +81,16 @@ test.describe("with location access", () => {
     await expect(page.locator(".leaflet-overlay-pane canvas")).toHaveCount(1);
     await page.getByRole("radio", { name: "Pulses" }).click();
     await expect(page.locator(".leaflet-overlay-pane canvas")).toHaveCount(0);
+  });
+
+  test("shows a place brief and an Access map mode", async ({ page }) => {
+    await expect(page.getByRole("heading", { name: /living brief for the ground/i })).toBeVisible();
+    await expect(page.getByLabel("Place brief")).toBeVisible();
+    // Wait for access summary chips (live OSM/Google or labeled sample).
+    await expect(page.getByLabel("Place brief").getByText("Care")).toBeVisible({ timeout: 20_000 });
+    await page.getByRole("radio", { name: "Access" }).click();
+    await expect(page.getByRole("radio", { name: "Access" })).toHaveAttribute("aria-checked", "true");
+    await expect(page.locator(".leaflet-interactive").first()).toBeVisible({ timeout: 15_000 });
   });
 });
 
