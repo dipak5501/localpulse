@@ -52,11 +52,53 @@ export interface AccessLayer {
   fetchedAt: number;
 }
 
+/** Coastal & seismic brief — USGS / NWS / NOAA (not a Google crisis API). */
+export type HazardSeverity = "info" | "advisory" | "watch" | "warning" | "extreme";
+export type HazardKind = "earthquake" | "tsunami" | "tide" | "coastal_flood";
+
+export interface HazardItem {
+  id: string;
+  kind: HazardKind;
+  severity: HazardSeverity;
+  title: string;
+  summary: string;
+  /** Event time (epoch ms). */
+  at: number;
+  distanceKm: number | null;
+  /** Authority label shown in the UI, e.g. "USGS", "NWS", "NOAA CO-OPS". */
+  source: string;
+  sourceUrl: string;
+  lat?: number;
+  lng?: number;
+}
+
+export interface TideBrief {
+  stationId: string;
+  stationName: string;
+  distanceKm: number;
+  nextHigh: { at: number; heightFt: number } | null;
+  nextLow: { at: number; heightFt: number } | null;
+  /** Non-alarmist framing from predictions alone (not an official flood warning). */
+  framing: string;
+  sourceUrl: string;
+}
+
+export interface HazardsBrief {
+  earthquakes: HazardItem[];
+  tsunamis: HazardItem[];
+  coastalFloods: HazardItem[];
+  tide: TideBrief | null;
+  fetchedAt: number;
+  errors: string[];
+}
+
 export interface PlaceBrief {
   origin: LatLng;
   place: PlaceName;
   weather: WeatherSnapshot | null;
   wiki: WikiPlace | null;
+  /** USGS / NWS / NOAA coastal & seismic signals for the map center. */
+  hazards: HazardsBrief | null;
   /** Present when Google Maps JS loaded successfully. */
   googleEnabled: boolean;
   fetchedAt: number;

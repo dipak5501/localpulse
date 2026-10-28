@@ -22,7 +22,7 @@ const mono = IBM_Plex_Mono({
 export const metadata: Metadata = {
   title: "Harborbrief — a living brief for the ground under your feet",
   description:
-    "Harborbrief (LocalPulse) layers live weather, Wikipedia place story, neighborhood access (clinics, groceries, transit, parks), and community pulses on a location-aware map. Built by Dipak Yadav.",
+    "Harborbrief (LocalPulse) layers live weather, USGS/NWS/NOAA coastal & seismic alerts, Wikipedia place story, neighborhood access, and community pulses on a location-aware map. Built by Dipak Yadav.",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {

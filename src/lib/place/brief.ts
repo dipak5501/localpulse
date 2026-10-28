@@ -2,6 +2,7 @@ import type { LatLng } from "../types";
 import { isGoogleMapsConfigured } from "./config";
 import { reverseGeocode } from "./geocode";
 import { loadGoogleMaps } from "./google";
+import { fetchHazardsBrief } from "./hazards";
 import type { PlaceBrief } from "./types";
 import { fetchWeather } from "./weather";
 import { fetchWikipediaNearby } from "./wikipedia";
@@ -27,10 +28,11 @@ export async function fetchPlaceBrief(
     if (!g) errors.push("Google Maps key is set but the script failed to load.");
   }
 
-  const [placeResult, weatherResult, wikiResult] = await Promise.allSettled([
+  const [placeResult, weatherResult, wikiResult, hazardsResult] = await Promise.allSettled([
     reverseGeocode(origin, signal),
     fetchWeather(origin, signal),
     fetchWikipediaNearby(origin, signal),
+    fetchHazardsBrief(origin, signal),
   ]);
 
   const place =
@@ -57,11 +59,19 @@ export async function fetchPlaceBrief(
     errors.push("Wikipedia nearby unavailable");
   }
 
+  const hazards = hazardsResult.status === "fulfilled" ? hazardsResult.value : null;
+  if (hazardsResult.status === "rejected") {
+    errors.push("Coastal & seismic brief unavailable");
+  } else if (hazards) {
+    errors.push(...hazards.errors);
+  }
+
   return {
     origin,
     place,
     weather,
     wiki,
+    hazards,
     googleEnabled,
     fetchedAt: Date.now(),
     errors,

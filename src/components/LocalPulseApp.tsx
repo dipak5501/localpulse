@@ -172,7 +172,7 @@ export function LocalPulseApp() {
             </span>
           </div>
           <p className="text-xs text-[color:var(--muted)]">
-            LocalPulse · weather, place story, neighborhood access, and community pulses
+            LocalPulse · weather, coastal &amp; seismic brief, place story, access, and pulses
           </p>
           <p className="text-xs text-[color:var(--muted)]">{statusLine(geo, remote)}</p>
         </header>
@@ -182,6 +182,7 @@ export function LocalPulseApp() {
             briefState={briefState}
             access={accessLayer}
             accessLoading={accessState.status === "loading"}
+            now={now}
           />
           <Filters
             radiusKm={radiusKm}

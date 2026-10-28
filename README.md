@@ -3,7 +3,7 @@
 [![CI](https://github.com/dipak5501/localpulse/actions/workflows/ci.yml/badge.svg)](https://github.com/dipak5501/localpulse/actions/workflows/ci.yml)
 [![Deploy](https://github.com/dipak5501/localpulse/actions/workflows/deploy.yml/badge.svg)](https://github.com/dipak5501/localpulse/actions/workflows/deploy.yml)
 
-**A living brief for the ground under your feet.** Harborbrief is not another generic “local trending” map — it layers **live weather**, a **Wikipedia place story**, **neighborhood access** (clinics, pharmacies, groceries, transit, parks), and **community pulses** ranked by a location-aware trending algorithm.
+**A living brief for the ground under your feet.** Harborbrief is not another generic “local trending” map — it layers **live weather**, a **coastal & seismic brief** (USGS / NWS / NOAA), a **Wikipedia place story**, **neighborhood access** (clinics, pharmacies, groceries, transit, parks), and **community pulses** ranked by a location-aware trending algorithm.
 
 Built by [Dipak Yadav](https://dipak5501.github.io/) (CSULB · Long Beach) — home port defaults to Long Beach when location is denied.
 
@@ -19,9 +19,10 @@ Most “local pulse” clones stop at pins + a feed. Harborbrief answers a diffe
 
 > **What is this place telling you right now?**
 
-1. **Living place brief** — reverse-geocoded neighborhood name, Open-Meteo conditions, nearest Wikipedia extract.
-2. **Access layer** — health-equity-adjacent neighborhood amenities (care, Rx, groceries, transit, parks) from Google Places when a key is present, otherwise OSM Overpass, otherwise clearly labeled sample points.
-3. **Community pulses** — the original LocalPulse ranking (upvotes × recency × proximity) with markers and a hand-rolled heatmap.
+1. **Living place brief** — reverse-geocoded neighborhood name, Open-Meteo conditions, nearest Wikipedia extract, plus a **coastal & seismic brief**.
+2. **Hazards (keyless)** — USGS earthquakes, NWS tsunami / coastal-flood alerts, NOAA CO-OPS high/low tide predictions. Google is used only for map context when a key is set — there is no Google tsunami API here.
+3. **Access layer** — health-equity-adjacent neighborhood amenities (care, Rx, groceries, transit, parks) from Google Places when a key is present, otherwise OSM Overpass, otherwise clearly labeled sample points.
+4. **Community pulses** — the original LocalPulse ranking (upvotes × recency × proximity) with markers and a hand-rolled heatmap.
 
 Repo / GitHub Pages path stays `localpulse` so existing links keep working; the product name in the UI is **Harborbrief**.
 
@@ -29,9 +30,11 @@ Repo / GitHub Pages path stays `localpulse` so existing links keep working; the 
 
 - **Live geolocation** via `watchPosition`, with Long Beach fallback + `?lat=&lng=` deep links
 - **Place brief panel** assembled from independent public APIs (partial failure tolerant)
+- **Coastal & seismic brief** — earthquakes, tsunami alerts, high-tide / coastal-flood framing
 - **Three map modes:** Pulses · Heatmap · Access
+- **Basemap** — free OpenStreetMap tiles by default; optional Google raster tiles when a Maps key is set
 - **Radius search** (1–15 km) with haversine locally, or PostGIS `ST_DWithin` via Supabase
-- **Optional Google Maps Platform** — Geocoding + Places Nearby unlock richer names and reliable POIs
+- **Optional Google Maps Platform** — Geocoding + Places Nearby + map context links (not hazard feeds)
 - **Offline pulse demo** when Supabase env is missing (seeded + `localStorage`)
 - **Responsive and accessible** controls (`aria-pressed`, radiogroup, labelled inputs)
 
@@ -39,13 +42,17 @@ Repo / GitHub Pages path stays `localpulse` so existing links keep working; the 
 
 | Signal | Default (no keys) | With `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY` |
 | ------ | ----------------- | -------------------------------------- |
+| Basemap tiles | [OpenStreetMap](https://www.openstreetmap.org/copyright) standard tiles | Optional Google raster tiles |
 | Place name | [BigDataCloud](https://www.bigdatacloud.com/) reverse-geocode client | Google Geocoding (Maps JS) |
 | Weather | [Open-Meteo](https://open-meteo.com/) | same |
+| Earthquakes | [USGS](https://earthquake.usgs.gov/) FDSN GeoJSON | same (+ Google Maps epicenter links) |
+| Tsunami / coastal flood | [NWS API](https://www.weather.gov/documentation/services-web-api) (+ USGS tsunami flag) | same |
+| High tide | [NOAA CO-OPS](https://tidesandcurrents.noaa.gov/) predictions | same |
 | Place story | [Wikipedia](https://www.mediawiki.org/wiki/API:Main_page) GeoSearch + REST summary | same |
 | Access POIs | [Overpass](https://overpass-api.de/) (OSM); labeled **sample** points if Overpass is down | Google Places Nearby |
 | Community pulses | Demo seed + `localStorage` | + Supabase when configured |
 
-Demo / sample access points are always labeled in the UI — never presented as live OSM/Google data.
+Demo / sample access points are always labeled in the UI — never presented as live OSM/Google data. Google Maps Platform does **not** supply earthquake, tsunami, or tide alerts; those stay on USGS / NWS / NOAA.
 
 ## Enable Google Cloud API key
 
@@ -59,7 +66,7 @@ Demo / sample access points are always labeled in the UI — never presented as 
 6. Copy into `.env.local` as `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY=…` (see [`.env.example`](.env.example)).
 7. For GitHub Pages, add the same value as repository secret `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY` and re-run Deploy.
 
-Never commit real keys. The anon/browser key is safe only when referrer-restricted.
+Never commit real keys. The anon/browser key is safe only when referrer-restricted. Hazards (USGS / NWS / NOAA) work with no Google key.
 
 ## How trending works
 
@@ -78,6 +85,7 @@ flowchart LR
   Brief --> Weather[Open-Meteo]
   Brief --> Geo[BigDataCloud / Google Geocoder]
   Brief --> Wiki[Wikipedia Geo]
+  Brief --> Hazards[USGS / NWS / NOAA]
   App --> Access[Access layer]
   Access --> Places[Google Places]
   Access --> OSM[OSM Overpass]
@@ -97,13 +105,13 @@ Unchanged dual backend: when `NEXT_PUBLIC_SUPABASE_URL` + `NEXT_PUBLIC_SUPABASE_
 
 | Layer | Tooling | Coverage |
 | ----- | ------- | -------- |
-| Unit | Vitest | Geo, trending, heatmap, storage, weather labels, access demo seed, Supabase gate |
+| Unit | Vitest | Geo, trending, heatmap, storage, weather labels, hazards helpers, access demo seed, Supabase gate |
 | Database | Vitest + PGlite/PostGIS | Radius RPCs, votes, RLS |
 | E2E | Playwright | Location, radius, filters, post/upvote, heatmap, Long Beach fallback |
 
 ## Tech stack
 
-Next.js 16 · React 19 · TypeScript · Tailwind CSS 4 · Leaflet · Open-Meteo · Wikipedia · Overpass · optional Google Maps JS (Geocoding + Places) · optional Supabase · Vitest · Playwright · GitHub Actions
+Next.js 16 · React 19 · TypeScript · Tailwind CSS 4 · Leaflet · Open-Meteo · USGS · NWS · NOAA CO-OPS · Wikipedia · Overpass · optional Google Maps JS (Geocoding + Places) · optional Supabase · Vitest · Playwright · GitHub Actions
 
 ## Getting started
 
@@ -123,6 +131,7 @@ npm run build
 - [x] Map, geolocation, radius, trending, heatmap, offline demo
 - [x] Supabase + PostGIS + Realtime path
 - [x] Harborbrief place brief (weather · wiki · geocode)
+- [x] Coastal & seismic brief (USGS · NWS · NOAA tides)
 - [x] Access map mode (Google Places / Overpass / labeled demo)
+- [x] Free OSM basemap by default; optional Google tiles when a key is present
 - [ ] Photo attachments via Supabase Storage
-- [ ] Optional Google Map tiles when a key is present

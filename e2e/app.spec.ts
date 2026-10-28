@@ -88,6 +88,7 @@ test.describe("with location access", () => {
     await expect(page.getByLabel("Place brief")).toBeVisible();
     // Wait for access summary chips (live OSM/Google or labeled sample).
     await expect(page.getByLabel("Place brief").getByText("Care")).toBeVisible({ timeout: 20_000 });
+    await expect(page.getByLabel("Coastal and seismic brief")).toBeVisible({ timeout: 25_000 });
     await page.getByRole("radio", { name: "Access" }).click();
     await expect(page.getByRole("radio", { name: "Access" })).toHaveAttribute("aria-checked", "true");
     await expect(page.locator(".leaflet-interactive").first()).toBeVisible({ timeout: 15_000 });
