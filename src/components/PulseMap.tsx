@@ -45,6 +45,25 @@ function FlyToPulse({ pulse }: { pulse: RankedPulse | undefined }) {
   return null;
 }
 
+/** Free OSM tiles by default (no key). Optional Google raster tiles when the Maps key is set. */
+function basemapTiles() {
+  const googleKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY?.trim();
+  if (googleKey) {
+    return {
+      url: "https://mt{s}.google.com/vt/lyrs=m&x={x}&y={y}&z={z}",
+      attribution: '&copy; <a href="https://maps.google.com/">Google</a>',
+      subdomains: "0123",
+      maxZoom: 20,
+    } as const;
+  }
+  return {
+    url: "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
+    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+    subdomains: "abc",
+    maxZoom: 19,
+  } as const;
+}
+
 export default function PulseMap({
   mode,
   center,
@@ -58,6 +77,7 @@ export default function PulseMap({
 }: PulseMapProps) {
   const maxScore = pulses[0]?.score ?? 1;
   const heatPoints = useMemo(() => toHeatPoints(pulses), [pulses]);
+  const tiles = useMemo(() => basemapTiles(), []);
 
   return (
     <MapContainer
@@ -68,10 +88,10 @@ export default function PulseMap({
       attributionControl
     >
       <TileLayer
-        attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> · CARTO'
-        url="https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png"
-        subdomains="abcd"
-        maxZoom={20}
+        attribution={tiles.attribution}
+        url={tiles.url}
+        subdomains={tiles.subdomains}
+        maxZoom={tiles.maxZoom}
       />
       <FitToRadius center={viewCenter} radiusKm={radiusKm} />
       {mode !== "access" && <FlyToPulse pulse={pulses.find((p) => p.id === selectedId)} />}
